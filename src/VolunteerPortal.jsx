@@ -12,13 +12,15 @@ import {
   X
 } from 'lucide-react';
 
-const VolunteerPortal = () => {
+const VolunteerPortal = ({ apiUrl = '' } = {}) => {
   const [volunteers, setVolunteers] = useState([]);
   const [selectedVolunteer, setSelectedVolunteer] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   // Sample data structure - in production, this would sync with Google Sheets
   const sampleVolunteers = [
@@ -70,14 +72,53 @@ const VolunteerPortal = () => {
   ];
 
   useEffect(() => {
-    // Simulate loading from Google Sheets
-    const timer = setTimeout(() => {
-      setVolunteers(sampleVolunteers);
-      setLoading(false);
-    }, 800);
+    let isMounted = true;
+    let timer;
 
-    return () => clearTimeout(timer);
-  }, []);
+    const loadVolunteers = async () => {
+      if (!apiUrl) {
+        // Simulate loading from Google Sheets
+        timer = setTimeout(() => {
+          if (!isMounted) {
+            return;
+          }
+          setVolunteers(sampleVolunteers);
+          setLoading(false);
+        }, 800);
+        return;
+      }
+
+      try {
+        const response = await fetch(apiUrl, { method: 'GET' });
+        const data = await response.json();
+        if (!isMounted) {
+          return;
+        }
+        if (!response.ok || !data || !Array.isArray(data.volunteers)) {
+          throw new Error('Failed to load volunteers.');
+        }
+        setVolunteers(data.volunteers);
+      } catch (err) {
+        if (isMounted) {
+          setError('Unable to load volunteers from Google Sheets.');
+          setVolunteers(sampleVolunteers);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadVolunteers();
+
+    return () => {
+      isMounted = false;
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [apiUrl]);
 
   const filteredVolunteers = volunteers.filter(
     (v) =>
@@ -90,11 +131,40 @@ const VolunteerPortal = () => {
     setEditedData({ ...volunteer });
   };
 
-  const handleSave = () => {
-    setVolunteers(volunteers.map((v) => (v.id === editedData.id ? editedData : v)));
-    setSelectedVolunteer(editedData);
-    setIsEditing(false);
-    // In production: sync to Google Sheets here
+  const handleSave = async () => {
+    setError('');
+    if (!editedData) {
+      return;
+    }
+
+    if (!apiUrl) {
+      setVolunteers(volunteers.map((v) => (v.id === editedData.id ? editedData : v)));
+      setSelectedVolunteer(editedData);
+      setIsEditing(false);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ volunteer: editedData })
+      });
+      const data = await response.json();
+      if (!response.ok || !data || !Array.isArray(data.volunteers)) {
+        throw new Error('Failed to update volunteers.');
+      }
+      setVolunteers(data.volunteers);
+      setSelectedVolunteer(
+        data.volunteers.find((v) => v.id === editedData.id) || editedData
+      );
+      setIsEditing(false);
+    } catch (err) {
+      setError('Unable to save changes to Google Sheets.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -132,6 +202,17 @@ const VolunteerPortal = () => {
           </p>
         </div>
       </div>
+
+      {error ? (
+        <div className="max-w-7xl mx-auto px-6 pt-6">
+          <div
+            className="rounded-lg px-4 py-3 text-sm"
+            style={{ backgroundColor: '#f5f3f0', color: '#886c44', border: '1px solid #e8e6e3' }}
+          >
+            {error}
+          </div>
+        </div>
+      ) : null}
 
       {!selectedVolunteer ? (
         <div className="max-w-7xl mx-auto px-6 py-8">
@@ -263,6 +344,7 @@ const VolunteerPortal = () => {
                       <button
                         onClick={handleSave}
                         className="p-2 hover:bg-green-100 rounded-lg transition-colors"
+                        disabled={saving}
                       >
                         <Save className="w-5 h-5 text-green-700" />
                       </button>
