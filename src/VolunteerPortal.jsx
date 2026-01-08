@@ -91,13 +91,18 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
     }
 
     const fileMatch = raw.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-    if (fileMatch) {
-      return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
-    }
-
     const openMatch = raw.match(/drive\.google\.com\/open\?id=([^&]+)/i);
-    if (openMatch) {
-      return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
+    const ucMatch = raw.match(/drive\.google\.com\/uc\?export=view&id=([^&]+)/i);
+    const thumbnailMatch = raw.match(/drive\.google\.com\/thumbnail\?id=([^&]+)/i);
+
+    const fileId =
+      (fileMatch && fileMatch[1]) ||
+      (openMatch && openMatch[1]) ||
+      (ucMatch && ucMatch[1]) ||
+      (thumbnailMatch && thumbnailMatch[1]);
+
+    if (fileId) {
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
     }
 
     return raw;
