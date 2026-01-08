@@ -23,12 +23,17 @@ const COLUMN_KEYS = [
   'whatTheyWant'
 ];
 
+const PHOTO_COLUMN_INDEX = COLUMN_KEYS.indexOf('photo');
+
 function doGet() {
   const sheet = getSheet_();
-  const data = sheet.getDataRange().getValues();
+  const range = sheet.getDataRange();
+  const data = range.getValues();
+  const richData = range.getRichTextValues();
   const rows = data.slice(1);
+  const richRows = richData.slice(1);
   const volunteers = rows
-    .map((row, index) => rowToVolunteer_(row, index + 2))
+    .map((row, index) => rowToVolunteer_(row, index + 2, richRows[index]))
     .filter(Boolean);
 
   return buildResponse_({ volunteers: volunteers });
@@ -41,18 +46,21 @@ function doPost(e) {
   }
 
   const sheet = getSheet_();
-  const data = sheet.getDataRange().getValues();
+  const range = sheet.getDataRange();
+  const data = range.getValues();
+  const richData = range.getRichTextValues();
   const rows = data.slice(1);
+  const richRows = richData.slice(1);
   const volunteers = rows
-    .map((row, index) => rowToVolunteer_(row, index + 2))
+    .map((row, index) => rowToVolunteer_(row, index + 2, richRows[index]))
     .filter(Boolean);
 
   const updated = upsertVolunteer_(sheet, volunteers, payload.volunteer);
-  const refreshed = sheet
-    .getDataRange()
-    .getValues()
-    .slice(1)
-    .map((row, index) => rowToVolunteer_(row, index + 2))
+  const refreshedRange = sheet.getDataRange();
+  const refreshedValues = refreshedRange.getValues().slice(1);
+  const refreshedRich = refreshedRange.getRichTextValues().slice(1);
+  const refreshed = refreshedValues
+    .map((row, index) => rowToVolunteer_(row, index + 2, refreshedRich[index]))
     .filter(Boolean);
 
   return buildResponse_({ volunteers: refreshed, updated: updated });
@@ -68,7 +76,7 @@ function getSheet_() {
   return sheet;
 }
 
-function rowToVolunteer_(row, rowNumber) {
+function rowToVolunteer_(row, rowNumber, richRow) {
   if (!row || row.length === 0) {
     return null;
   }
@@ -77,6 +85,16 @@ function rowToVolunteer_(row, rowNumber) {
   COLUMN_KEYS.forEach((key, index) => {
     volunteer[key] = row[index] !== undefined ? row[index] : '';
   });
+
+  if (richRow && PHOTO_COLUMN_INDEX >= 0) {
+    const richCell = richRow[PHOTO_COLUMN_INDEX];
+    if (richCell && typeof richCell.getLinkUrl === 'function') {
+      const linkUrl = richCell.getLinkUrl();
+      if (linkUrl) {
+        volunteer.photo = linkUrl;
+      }
+    }
+  }
 
   return volunteer;
 }
