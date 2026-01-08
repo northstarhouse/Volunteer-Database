@@ -1,26 +1,34 @@
 ﻿const SHEET_ID = '1R-rBXFEnqcWXJCAbvpJwXooe-G231tanGYN4GDBv9ZA';
-const SHEET_NAME = 'Volunteers';
+const SHEET_NAME = '2026 Volunteers';
 
-const HEADERS = [
-  'id',
-  'name',
+const COLUMN_KEYS = [
+  'firstName',
+  'lastName',
   'area',
-  'photo',
+  'role',
+  'status',
   'email',
-  'phone',
+  'phoneNumber',
   'address',
   'birthday',
-  'background',
-  'hours',
+  'notes',
+  'cc',
+  'nametag',
   'emergencyContact',
-  'notes'
+  'volunteerAnniversary',
+  'constantContactA',
+  'constantContactB',
+  'photo',
+  'background'
 ];
 
 function doGet() {
   const sheet = getSheet_();
   const data = sheet.getDataRange().getValues();
   const rows = data.slice(1);
-  const volunteers = rows.map(rowToVolunteer_).filter(Boolean);
+  const volunteers = rows
+    .map((row, index) => rowToVolunteer_(row, index + 2))
+    .filter(Boolean);
 
   return buildResponse_({ volunteers: volunteers });
 }
@@ -34,10 +42,17 @@ function doPost(e) {
   const sheet = getSheet_();
   const data = sheet.getDataRange().getValues();
   const rows = data.slice(1);
-  const volunteers = rows.map(rowToVolunteer_).filter(Boolean);
+  const volunteers = rows
+    .map((row, index) => rowToVolunteer_(row, index + 2))
+    .filter(Boolean);
 
   const updated = upsertVolunteer_(sheet, volunteers, payload.volunteer);
-  const refreshed = sheet.getDataRange().getValues().slice(1).map(rowToVolunteer_).filter(Boolean);
+  const refreshed = sheet
+    .getDataRange()
+    .getValues()
+    .slice(1)
+    .map((row, index) => rowToVolunteer_(row, index + 2))
+    .filter(Boolean);
 
   return buildResponse_({ volunteers: refreshed, updated: updated });
 }
@@ -49,21 +64,17 @@ function getSheet_() {
     throw new Error('Sheet not found: ' + SHEET_NAME);
   }
 
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(HEADERS);
-  }
-
   return sheet;
 }
 
-function rowToVolunteer_(row) {
+function rowToVolunteer_(row, rowNumber) {
   if (!row || row.length === 0) {
     return null;
   }
 
-  const volunteer = {};
-  HEADERS.forEach((header, index) => {
-    volunteer[header] = row[index] !== undefined ? row[index] : '';
+  const volunteer = { _row: rowNumber };
+  COLUMN_KEYS.forEach((key, index) => {
+    volunteer[key] = row[index] !== undefined ? row[index] : '';
   });
 
   return volunteer;
@@ -71,32 +82,16 @@ function rowToVolunteer_(row) {
 
 function upsertVolunteer_(sheet, volunteers, volunteer) {
   const normalized = Object.assign({}, volunteer);
-  if (!normalized.id) {
-    normalized.id = nextId_(volunteers);
-  }
+  const targetRow = normalized._row ? parseInt(normalized._row, 10) : null;
+  const rowValues = COLUMN_KEYS.map((key) => normalized[key] || '');
 
-  const rowIndex = volunteers.findIndex((item) => String(item.id) === String(normalized.id));
-  const rowValues = HEADERS.map((header) => normalized[header] || '');
-
-  if (rowIndex >= 0) {
-    sheet.getRange(rowIndex + 2, 1, 1, HEADERS.length).setValues([rowValues]);
+  if (targetRow) {
+    sheet.getRange(targetRow, 1, 1, COLUMN_KEYS.length).setValues([rowValues]);
   } else {
     sheet.appendRow(rowValues);
   }
 
   return normalized;
-}
-
-function nextId_(volunteers) {
-  if (!volunteers.length) {
-    return 1;
-  }
-
-  const ids = volunteers
-    .map((item) => parseInt(item.id, 10))
-    .filter((value) => !isNaN(value));
-
-  return Math.max.apply(null, ids.concat([0])) + 1;
 }
 
 function parsePayload_(e) {

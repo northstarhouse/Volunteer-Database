@@ -23,54 +23,116 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
   const [error, setError] = useState('');
   const [showInactive, setShowInactive] = useState(false);
 
+  const isActiveStatus = (status) => {
+    const normalized = String(status || '').toLowerCase();
+    return ['active', 'current', 'yes', 'y', '1'].includes(normalized);
+  };
+
+  const toStatusLabel = (isActive, existing) => {
+    if (typeof existing === 'string' && existing.trim()) {
+      return isActive ? 'Active' : 'Inactive';
+    }
+    return isActive ? 'Active' : 'Inactive';
+  };
+
+  const splitName = (name, fallbackFirst, fallbackLast) => {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) {
+      return { firstName: fallbackFirst || '', lastName: fallbackLast || '' };
+    }
+    const parts = trimmed.split(/\s+/);
+    return {
+      firstName: parts[0] || '',
+      lastName: parts.slice(1).join(' ')
+    };
+  };
+
+  const normalizeVolunteer = (raw) => {
+    const firstName = raw.firstName || raw['first name'] || '';
+    const lastName = raw.lastName || raw['last name'] || '';
+    const name = raw.name || [firstName, lastName].filter(Boolean).join(' ').trim();
+    const status = raw.status || raw['status'] || '';
+    const activeValue =
+      raw.isActive !== undefined ? raw.isActive : isActiveStatus(status);
+
+    return {
+      ...raw,
+      id: raw._row || raw.id || name,
+      _row: raw._row,
+      firstName,
+      lastName,
+      name,
+      area: raw.area || raw['area'] || '',
+      role: raw.role || raw['role'] || '',
+      status,
+      isActive: activeValue,
+      photo: raw.photo || raw['picture url'] || raw.photoUrl || '',
+      email: raw.email || raw['email'] || '',
+      phoneNumber: raw.phoneNumber || raw['phone number'] || raw.phone || '',
+      address: raw.address || raw['address'] || '',
+      birthday: raw.birthday || raw['birthday'] || '',
+      background: raw.background || raw['background notes'] || '',
+      emergencyContact: raw.emergencyContact || raw['emergency contact'] || '',
+      notes: raw.notes || raw['notes'] || ''
+    };
+  };
+
+  const getVolunteerId = (volunteer) => volunteer._row || volunteer.id;
+
   // Sample data structure - in production, this would sync with Google Sheets
   const sampleVolunteers = [
     {
       id: 1,
-      name: "Sarah Chen",
+      firstName: "Sarah",
+      lastName: "Chen",
       area: "Events Coordination",
+      role: "Lead",
       photo: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400",
       email: "sarah.chen@email.com",
-      phone: "(530) 555-0123",
+      phoneNumber: "(530) 555-0123",
       address: "123 Pine Street, Grass Valley, CA 95945",
       birthday: "March 15",
       background:
         "Sarah has been volunteering with North Star House since 2022, bringing her event planning expertise and love for historic preservation to our community.",
-      hours: 87,
       emergencyContact: "John Chen (530) 555-0124",
       notes: "Prefers morning shifts. Excellent with vendor coordination.",
+      status: "Active",
       isActive: true
     },
     {
       id: 2,
-      name: "Michael Torres",
+      firstName: "Michael",
+      lastName: "Torres",
       area: "Historic Preservation",
+      role: "Skilled Volunteer",
       photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400",
       email: "m.torres@email.com",
-      phone: "(530) 555-0125",
+      phoneNumber: "(530) 555-0125",
       address: "456 Oak Avenue, Grass Valley, CA 95945",
       birthday: "July 22",
       background:
         "Retired contractor with 30+ years of experience. Passionate about preserving Julia Morgan's architectural legacy.",
-      hours: 124,
       emergencyContact: "Maria Torres (530) 555-0126",
       notes: "Skilled in woodwork restoration. Available weekdays.",
+      status: "Active",
       isActive: true
     },
     {
       id: 3,
-      name: "Emily Rodriguez",
+      firstName: "Emily",
+      lastName: "Rodriguez",
       area: "Arts Programming",
+      role: "Instructor",
       photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400",
       email: "emily.r@email.com",
-      phone: "(530) 555-0127",
+      phoneNumber: "(530) 555-0127",
       address: "789 Maple Drive, Nevada City, CA 95959",
       birthday: "November 8",
       background:
         "Local artist and educator who teaches youth art classes at North Star House. Deeply connected to the creative community.",
-      hours: 63,
       emergencyContact: "David Rodriguez (530) 555-0128",
       notes: "Great with children. Leads Saturday workshops.",
+      status: "Active",
       isActive: true
     }
   ];
@@ -86,7 +148,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
           if (!isMounted) {
             return;
           }
-          setVolunteers(sampleVolunteers);
+          setVolunteers(sampleVolunteers.map(normalizeVolunteer));
           setLoading(false);
         }, 800);
         return;
@@ -101,11 +163,11 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
         if (!response.ok || !data || !Array.isArray(data.volunteers)) {
           throw new Error('Failed to load volunteers.');
         }
-        setVolunteers(data.volunteers);
+        setVolunteers(data.volunteers.map(normalizeVolunteer));
       } catch (err) {
         if (isMounted) {
           setError('Unable to load volunteers from Google Sheets.');
-          setVolunteers(sampleVolunteers);
+          setVolunteers(sampleVolunteers.map(normalizeVolunteer));
         }
       } finally {
         if (isMounted) {
@@ -124,11 +186,14 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
     };
   }, [apiUrl]);
 
-  const filteredVolunteers = volunteers.filter(
-    (v) =>
-      v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      v.area.toLowerCase().includes(searchTerm.toLowerCase())
-  ).filter((v) => (showInactive ? true : v.isActive !== false));
+  const filteredVolunteers = volunteers
+    .filter(
+      (v) =>
+        v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.area.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.role.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter((v) => (showInactive ? true : v.isActive !== false));
 
   const handleEdit = (volunteer) => {
     setIsEditing(true);
@@ -141,9 +206,19 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
       return;
     }
 
+    const nameParts = splitName(editedData.name, editedData.firstName, editedData.lastName);
+    const normalized = {
+      ...editedData,
+      firstName: nameParts.firstName,
+      lastName: nameParts.lastName,
+      status: toStatusLabel(editedData.isActive !== false, editedData.status)
+    };
+
     if (!apiUrl) {
-      setVolunteers(volunteers.map((v) => (v.id === editedData.id ? editedData : v)));
-      setSelectedVolunteer(editedData);
+      setVolunteers(
+        volunteers.map((v) => (getVolunteerId(v) === getVolunteerId(normalized) ? normalizeVolunteer(normalized) : v))
+      );
+      setSelectedVolunteer(normalizeVolunteer(normalized));
       setIsEditing(false);
       return;
     }
@@ -153,15 +228,18 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ volunteer: editedData })
+        body: JSON.stringify({ volunteer: normalized })
       });
       const data = await response.json();
       if (!response.ok || !data || !Array.isArray(data.volunteers)) {
         throw new Error('Failed to update volunteers.');
       }
-      setVolunteers(data.volunteers);
+      setVolunteers(data.volunteers.map(normalizeVolunteer));
       setSelectedVolunteer(
-        data.volunteers.find((v) => v.id === editedData.id) || editedData
+        data.volunteers
+          .map(normalizeVolunteer)
+          .find((v) => getVolunteerId(v) === getVolunteerId(normalized)) ||
+          normalizeVolunteer(normalized)
       );
       setIsEditing(false);
     } catch (err) {
@@ -185,10 +263,16 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
       return;
     }
     const nextActive = selectedVolunteer.isActive === false;
-    const updated = { ...selectedVolunteer, isActive: nextActive };
+    const updated = {
+      ...selectedVolunteer,
+      isActive: nextActive,
+      status: toStatusLabel(nextActive, selectedVolunteer.status)
+    };
 
     if (!apiUrl) {
-      setVolunteers(volunteers.map((v) => (v.id === updated.id ? updated : v)));
+      setVolunteers(
+        volunteers.map((v) => (getVolunteerId(v) === getVolunteerId(updated) ? updated : v))
+      );
       setSelectedVolunteer(updated);
       return;
     }
@@ -204,9 +288,11 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
       if (!response.ok || !data || !Array.isArray(data.volunteers)) {
         throw new Error('Failed to update volunteer.');
       }
-      setVolunteers(data.volunteers);
+      setVolunteers(data.volunteers.map(normalizeVolunteer));
       setSelectedVolunteer(
-        data.volunteers.find((v) => v.id === updated.id) || updated
+        data.volunteers
+          .map(normalizeVolunteer)
+          .find((v) => getVolunteerId(v) === getVolunteerId(updated)) || updated
       );
     } catch (err) {
       setError('Unable to update volunteer status.');
@@ -286,7 +372,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
           >
             {filteredVolunteers.map((volunteer) => (
               <div
-                key={volunteer.id}
+                key={getVolunteerId(volunteer)}
                 onClick={() => setSelectedVolunteer(volunteer)}
                 className="flex items-center gap-4 p-4 cursor-pointer transition-colors"
                 style={{ ':hover': { backgroundColor: '#f5f3f0' } }}
@@ -309,6 +395,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                   </h3>
                   <p className="text-sm" style={{ color: '#886c44', opacity: 0.7 }}>
                     {volunteer.area}
+                    {volunteer.role ? ` · ${volunteer.role}` : ''}
                   </p>
                   {volunteer.isActive === false ? (
                     <span
@@ -391,7 +478,17 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                   <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full inline-block shadow-sm">
                     <Star className="w-4 h-4" style={{ color: '#886c44' }} />
                     <span className="font-medium" style={{ color: '#886c44' }}>
-                      {isEditing ? editedData.hours : selectedVolunteer.hours} hours this year
+                      {toStatusLabel(
+                        (isEditing ? editedData.isActive : selectedVolunteer.isActive) !== false,
+                        isEditing ? editedData.status : selectedVolunteer.status
+                      )}
+                      {isEditing
+                        ? editedData.role
+                          ? ` · ${editedData.role}`
+                          : ''
+                        : selectedVolunteer.role
+                        ? ` · ${selectedVolunteer.role}`
+                        : ''}
                     </span>
                   </div>
                 </div>
@@ -458,9 +555,16 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                 <InfoField
                   icon={<Phone className="w-5 h-5" />}
                   label="Phone"
-                  value={isEditing ? editedData.phone : selectedVolunteer.phone}
+                  value={isEditing ? editedData.phoneNumber : selectedVolunteer.phoneNumber}
                   isEditing={isEditing}
-                  onChange={(val) => handleInputChange('phone', val)}
+                  onChange={(val) => handleInputChange('phoneNumber', val)}
+                />
+                <InfoField
+                  icon={<User className="w-5 h-5" />}
+                  label="Role"
+                  value={isEditing ? editedData.role : selectedVolunteer.role}
+                  isEditing={isEditing}
+                  onChange={(val) => handleInputChange('role', val)}
                 />
                 <InfoField
                   icon={<MapPin className="w-5 h-5" />}
@@ -480,7 +584,9 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                 <InfoField
                   icon={<AlertCircle className="w-5 h-5" />}
                   label="Emergency Contact"
-                  value={isEditing ? editedData.emergencyContact : selectedVolunteer.emergencyContact}
+                  value={
+                    isEditing ? editedData.emergencyContact : selectedVolunteer.emergencyContact
+                  }
                   isEditing={isEditing}
                   onChange={(val) => handleInputChange('emergencyContact', val)}
                   fullWidth

@@ -9,8 +9,25 @@
    - Who has access: Anyone
 6. Copy the Web app URL and pass it into the component as `apiUrl`.
 
-## Expected headers
+## Expected columns
 
-Row 1 should contain the following headers:
+The script reads columns A through R in `SHEET_NAME` using this layout:
 
-id, name, area, photo, email, phone, address, birthday, background, hours, emergencyContact, notes
+A: first name  
+B: last name  
+C: area  
+D: role  
+E: status  
+F: email  
+G: phone number  
+H: address  
+I: birthday  
+J: notes  
+K: cc  
+L: nametag  
+M: emergency contact  
+N: volunteer anniversary  
+O: constant contact (A)  
+P: constant contact (B)  
+Q: picture url  
+R: background notes
