@@ -107,14 +107,9 @@ function parsePayload_(e) {
 }
 
 function buildResponse_(payload, statusCode) {
-  const output = ContentService
+  return ContentService
     .createTextOutput(JSON.stringify(payload))
     .setMimeType(ContentService.MimeType.JSON);
-
-  return output.setHeader('Access-Control-Allow-Origin', '*')
-    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    .setHeader('Access-Control-Allow-Headers', 'Content-Type')
-    .setHeader('Status', statusCode || 200);
 }
 
 function doOptions() {
