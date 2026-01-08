@@ -23,6 +23,40 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
   const [error, setError] = useState('');
   const [showInactive, setShowInactive] = useState(false);
 
+  const CACHE_KEY = 'volunteer-cache-v1';
+
+  const loadCache = () => {
+    try {
+      if (typeof window === 'undefined') {
+        return null;
+      }
+      const raw = window.localStorage.getItem(CACHE_KEY);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch (err) {
+      return null;
+    }
+  };
+
+  const saveCache = (list) => {
+    try {
+      if (typeof window === 'undefined') {
+        return;
+      }
+      window.localStorage.setItem(CACHE_KEY, JSON.stringify(list));
+    } catch (err) {
+      // Ignore cache write failures.
+    }
+  };
+
+  const setVolunteersWithCache = (list) => {
+    setVolunteers(list);
+    saveCache(list);
+  };
+
   const isActiveStatus = (status) => {
     const normalized = String(status || '').toLowerCase();
     return ['active', 'current', 'yes', 'y', '1'].includes(normalized);
@@ -201,10 +235,16 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
           if (!isMounted) {
             return;
           }
-          setVolunteers(sampleVolunteers.map(normalizeVolunteer));
+          setVolunteersWithCache(sampleVolunteers.map(normalizeVolunteer));
           setLoading(false);
         }, 800);
         return;
+      }
+
+      const cached = loadCache();
+      if (cached && isMounted) {
+        setVolunteers(cached.map(normalizeVolunteer));
+        setLoading(false);
       }
 
       try {
@@ -216,11 +256,12 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
         if (!response.ok || !data || !Array.isArray(data.volunteers)) {
           throw new Error('Failed to load volunteers.');
         }
-        setVolunteers(data.volunteers.map(normalizeVolunteer));
+        const normalized = data.volunteers.map(normalizeVolunteer);
+        setVolunteersWithCache(normalized);
       } catch (err) {
         if (isMounted) {
           setError('Unable to load volunteers from Google Sheets.');
-          setVolunteers(sampleVolunteers.map(normalizeVolunteer));
+          setVolunteersWithCache(sampleVolunteers.map(normalizeVolunteer));
         }
       } finally {
         if (isMounted) {
@@ -268,7 +309,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
     };
 
     if (!apiUrl) {
-      setVolunteers(
+      setVolunteersWithCache(
         volunteers.map((v) => (getVolunteerId(v) === getVolunteerId(normalized) ? normalizeVolunteer(normalized) : v))
       );
       setSelectedVolunteer(normalizeVolunteer(normalized));
@@ -287,7 +328,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
       if (!response.ok || !data || !Array.isArray(data.volunteers)) {
         throw new Error('Failed to update volunteers.');
       }
-      setVolunteers(data.volunteers.map(normalizeVolunteer));
+      setVolunteersWithCache(data.volunteers.map(normalizeVolunteer));
       setSelectedVolunteer(
         data.volunteers
           .map(normalizeVolunteer)
@@ -323,7 +364,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
     };
 
     if (!apiUrl) {
-      setVolunteers(
+      setVolunteersWithCache(
         volunteers.map((v) => (getVolunteerId(v) === getVolunteerId(updated) ? updated : v))
       );
       setSelectedVolunteer(updated);
@@ -341,7 +382,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
       if (!response.ok || !data || !Array.isArray(data.volunteers)) {
         throw new Error('Failed to update volunteer.');
       }
-      setVolunteers(data.volunteers.map(normalizeVolunteer));
+      setVolunteersWithCache(data.volunteers.map(normalizeVolunteer));
       setSelectedVolunteer(
         data.volunteers
           .map(normalizeVolunteer)
@@ -440,8 +481,10 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                   <img
                     src={getPhotoSrc(volunteer.photo)}
                     alt={volunteer.name}
-                    className="w-12 h-12 rounded-full object-cover"
+                    className="w-12 h-12 rounded-full object-cover object-center"
                     style={{ border: '2px solid #886c44', opacity: 0.9 }}
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div
@@ -497,7 +540,9 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                   <img
                     src={getPhotoSrc(isEditing ? editedData.photo : selectedVolunteer.photo)}
                     alt={isEditing ? editedData.name : selectedVolunteer.name}
-                    className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md"
+                    className="w-32 h-32 rounded-full object-cover object-center border-4 border-white shadow-md"
+                    loading="eager"
+                    decoding="async"
                   />
                 ) : (
                   <div
