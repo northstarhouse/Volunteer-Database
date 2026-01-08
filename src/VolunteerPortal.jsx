@@ -180,6 +180,19 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
     setEditedData({ ...editedData, [field]: value });
   };
 
+  const handlePhotoUpload = (file) => {
+    if (!file) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result) {
+        setEditedData((prev) => ({ ...prev, photo: reader.result }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleToggleActive = async () => {
     if (!selectedVolunteer) {
       return;
@@ -233,10 +246,10 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
       {/* Header */}
       <div className="bg-white shadow-sm" style={{ borderBottom: '1px solid #e8e6e3' }}>
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <h1 className="text-3xl font-light mb-2" style={{ color: '#886c44' }}>
+          <h1 className="text-3xl font-light mb-2 portal-title" style={{ color: '#886c44' }}>
             Volunteer Database
           </h1>
-          <p className="text-sm" style={{ color: '#886c44', opacity: 0.8 }}>
+          <p className="text-sm portal-subtitle" style={{ color: '#886c44', opacity: 0.8 }}>
             North Star House Community
           </p>
         </div>
@@ -351,14 +364,20 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                     className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md"
                   />
                   {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedData.photo}
-                      onChange={(e) => handleInputChange('photo', e.target.value)}
-                      className="mt-3 text-sm focus:outline-none bg-white px-3 py-2 rounded-lg w-56"
-                      style={{ color: '#886c44', border: '1px solid #e8e6e3' }}
-                      placeholder="Photo URL"
-                    />
+                    <label
+                      className="mt-3 inline-flex items-center gap-2 text-xs cursor-pointer"
+                      style={{ color: '#886c44' }}
+                    >
+                      <span className="px-3 py-2 rounded-lg bg-white" style={{ border: '1px solid #e8e6e3' }}>
+                        Choose photo
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handlePhotoUpload(e.target.files && e.target.files[0])}
+                        className="hidden"
+                      />
+                    </label>
                   ) : null}
                 </div>
                 <div className="flex-1">

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,4 +7,10 @@
 body {
   margin: 0;
   font-family: "Helvetica Neue", Arial, sans-serif;
+}
+
+.portal-title,
+.portal-subtitle {
+  font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.01em;
 }
