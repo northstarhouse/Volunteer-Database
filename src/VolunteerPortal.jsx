@@ -21,6 +21,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
 
   // Sample data structure - in production, this would sync with Google Sheets
   const sampleVolunteers = [
@@ -37,7 +38,8 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
         "Sarah has been volunteering with North Star House since 2022, bringing her event planning expertise and love for historic preservation to our community.",
       hours: 87,
       emergencyContact: "John Chen (530) 555-0124",
-      notes: "Prefers morning shifts. Excellent with vendor coordination."
+      notes: "Prefers morning shifts. Excellent with vendor coordination.",
+      isActive: true
     },
     {
       id: 2,
@@ -52,7 +54,8 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
         "Retired contractor with 30+ years of experience. Passionate about preserving Julia Morgan's architectural legacy.",
       hours: 124,
       emergencyContact: "Maria Torres (530) 555-0126",
-      notes: "Skilled in woodwork restoration. Available weekdays."
+      notes: "Skilled in woodwork restoration. Available weekdays.",
+      isActive: true
     },
     {
       id: 3,
@@ -67,7 +70,8 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
         "Local artist and educator who teaches youth art classes at North Star House. Deeply connected to the creative community.",
       hours: 63,
       emergencyContact: "David Rodriguez (530) 555-0128",
-      notes: "Great with children. Leads Saturday workshops."
+      notes: "Great with children. Leads Saturday workshops.",
+      isActive: true
     }
   ];
 
@@ -124,7 +128,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
     (v) =>
       v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.area.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).filter((v) => (showInactive ? true : v.isActive !== false));
 
   const handleEdit = (volunteer) => {
     setIsEditing(true);
@@ -176,6 +180,41 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
     setEditedData({ ...editedData, [field]: value });
   };
 
+  const handleToggleActive = async () => {
+    if (!selectedVolunteer) {
+      return;
+    }
+    const nextActive = selectedVolunteer.isActive === false;
+    const updated = { ...selectedVolunteer, isActive: nextActive };
+
+    if (!apiUrl) {
+      setVolunteers(volunteers.map((v) => (v.id === updated.id ? updated : v)));
+      setSelectedVolunteer(updated);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ volunteer: updated })
+      });
+      const data = await response.json();
+      if (!response.ok || !data || !Array.isArray(data.volunteers)) {
+        throw new Error('Failed to update volunteer.');
+      }
+      setVolunteers(data.volunteers);
+      setSelectedVolunteer(
+        data.volunteers.find((v) => v.id === updated.id) || updated
+      );
+    } catch (err) {
+      setError('Unable to update volunteer status.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div
@@ -217,7 +256,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
       {!selectedVolunteer ? (
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Search Bar */}
-          <div className="mb-8">
+          <div className="mb-8 flex flex-wrap items-center gap-4">
             <input
               type="text"
               placeholder="Search volunteers by name or area..."
@@ -226,6 +265,18 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
               className="w-full max-w-md px-4 py-3 rounded-lg focus:outline-none focus:ring-2 bg-white"
               style={{ border: '1px solid #e8e6e3', '--tw-ring-color': '#886c44' }}
             />
+            <button
+              type="button"
+              onClick={() => setShowInactive((prev) => !prev)}
+              className="px-4 py-2 rounded-lg text-sm transition-colors"
+              style={{
+                border: '1px solid #e8e6e3',
+                color: '#886c44',
+                backgroundColor: showInactive ? '#f5f3f0' : '#ffffff'
+              }}
+            >
+              {showInactive ? 'Hide inactive' : 'Show inactive'}
+            </button>
           </div>
 
           {/* Volunteer List */}
@@ -259,6 +310,14 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                   <p className="text-sm" style={{ color: '#886c44', opacity: 0.7 }}>
                     {volunteer.area}
                   </p>
+                  {volunteer.isActive === false ? (
+                    <span
+                      className="inline-block text-xs mt-1 px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: '#f5f3f0', color: '#886c44' }}
+                    >
+                      Inactive
+                    </span>
+                  ) : null}
                 </div>
               </div>
             ))}
@@ -285,11 +344,23 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
             {/* Header with Photo */}
             <div className="p-8" style={{ backgroundColor: '#f5f3f0' }}>
               <div className="flex items-start gap-6">
-                <img
-                  src={isEditing ? editedData.photo : selectedVolunteer.photo}
-                  alt={isEditing ? editedData.name : selectedVolunteer.name}
-                  className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md"
-                />
+                <div>
+                  <img
+                    src={isEditing ? editedData.photo : selectedVolunteer.photo}
+                    alt={isEditing ? editedData.name : selectedVolunteer.name}
+                    className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md"
+                  />
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedData.photo}
+                      onChange={(e) => handleInputChange('photo', e.target.value)}
+                      className="mt-3 text-sm focus:outline-none bg-white px-3 py-2 rounded-lg w-56"
+                      style={{ color: '#886c44', border: '1px solid #e8e6e3' }}
+                      placeholder="Photo URL"
+                    />
+                  ) : null}
+                </div>
                 <div className="flex-1">
                   {isEditing ? (
                     <input
@@ -326,19 +397,33 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                 </div>
                 <div className="flex gap-2">
                   {!isEditing ? (
-                    <button
-                      onClick={() => handleEdit(selectedVolunteer)}
-                      className="p-2 rounded-lg transition-colors"
-                      style={{ color: '#886c44' }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#f5f3f0';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
-                    >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
+                    <>
+                      <button
+                        onClick={handleToggleActive}
+                        className="px-3 py-2 rounded-lg text-xs transition-colors"
+                        style={{
+                          border: '1px solid #e8e6e3',
+                          color: '#886c44',
+                          backgroundColor:
+                            selectedVolunteer.isActive === false ? '#ffffff' : '#f5f3f0'
+                        }}
+                      >
+                        {selectedVolunteer.isActive === false ? 'Restore' : 'Mark inactive'}
+                      </button>
+                      <button
+                        onClick={() => handleEdit(selectedVolunteer)}
+                        className="p-2 rounded-lg transition-colors"
+                        style={{ color: '#886c44' }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f5f3f0';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <Edit2 className="w-5 h-5" />
+                      </button>
+                    </>
                   ) : (
                     <>
                       <button
