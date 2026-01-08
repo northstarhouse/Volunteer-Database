@@ -468,7 +468,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
               <div
                 key={getVolunteerId(volunteer)}
                 onClick={() => setSelectedVolunteer(volunteer)}
-                className="flex items-center gap-4 p-4 cursor-pointer transition-colors"
+                className="flex items-center gap-5 p-5 cursor-pointer transition-colors"
                 style={{ ':hover': { backgroundColor: '#f5f3f0' } }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#f5f3f0';
@@ -481,24 +481,24 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                   <img
                     src={getPhotoSrc(volunteer.photo)}
                     alt={volunteer.name}
-                    className="w-12 h-12 rounded-full object-cover object-center"
+                    className="w-16 h-16 rounded-full object-cover object-center"
                     style={{ border: '2px solid #886c44', opacity: 0.9 }}
                     loading="lazy"
                     decoding="async"
                   />
                 ) : (
                   <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center"
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
                     style={{ border: '2px solid #886c44', color: '#886c44', opacity: 0.9 }}
                   >
-                    <Star className="w-5 h-5" />
+                    <Star className="w-6 h-6" />
                   </div>
                 )}
                 <div className="flex-1">
-                  <h3 className="text-lg font-light" style={{ color: '#886c44' }}>
+                  <h3 className="text-xl font-light" style={{ color: '#886c44' }}>
                     {volunteer.name}
                   </h3>
-                  <p className="text-sm" style={{ color: '#886c44', opacity: 0.7 }}>
+                  <p className="text-base" style={{ color: '#886c44', opacity: 0.7 }}>
                     {volunteer.area}
                   </p>
                   {volunteer.isActive === false ? (
