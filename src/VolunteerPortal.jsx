@@ -383,12 +383,21 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <img
-                  src={volunteer.photo}
-                  alt={volunteer.name}
-                  className="w-12 h-12 rounded-full object-cover"
-                  style={{ border: '2px solid #886c44', opacity: 0.9 }}
-                />
+                {volunteer.photo ? (
+                  <img
+                    src={volunteer.photo}
+                    alt={volunteer.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                    style={{ border: '2px solid #886c44', opacity: 0.9 }}
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center"
+                    style={{ border: '2px solid #886c44', color: '#886c44', opacity: 0.9 }}
+                  >
+                    <Star className="w-5 h-5" />
+                  </div>
+                )}
                 <div className="flex-1">
                   <h3 className="text-lg font-light" style={{ color: '#886c44' }}>
                     {volunteer.name}
@@ -431,11 +440,20 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
             <div className="p-8" style={{ backgroundColor: '#f5f3f0' }}>
               <div className="flex items-start gap-6">
                 <div>
+                {(isEditing ? editedData.photo : selectedVolunteer.photo) ? (
                   <img
                     src={isEditing ? editedData.photo : selectedVolunteer.photo}
                     alt={isEditing ? editedData.name : selectedVolunteer.name}
                     className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md"
                   />
+                ) : (
+                  <div
+                    className="w-32 h-32 rounded-full flex items-center justify-center border-4 border-white shadow-md"
+                    style={{ backgroundColor: '#f5f3f0', color: '#886c44' }}
+                  >
+                    <Star className="w-10 h-10" />
+                  </div>
+                )}
                   {isEditing ? (
                     <input
                       type="text"
