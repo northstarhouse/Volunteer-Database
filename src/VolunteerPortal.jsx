@@ -72,6 +72,8 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
       address: raw.address || raw['address'] || '',
       birthday: raw.birthday || raw['birthday'] || '',
       background: raw.background || raw['background notes'] || '',
+      whatTheyWant:
+        raw.whatTheyWant || raw['what they want to see at north star house'] || '',
       emergencyContact: raw.emergencyContact || raw['emergency contact'] || '',
       notes: raw.notes || raw['notes'] || ''
     };
@@ -96,6 +98,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
         "Sarah has been volunteering with North Star House since 2022, bringing her event planning expertise and love for historic preservation to our community.",
       emergencyContact: "John Chen (530) 555-0124",
       notes: "Prefers morning shifts. Excellent with vendor coordination.",
+      whatTheyWant: "More community events and volunteer workshops.",
       status: "Active",
       isActive: true
     },
@@ -114,6 +117,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
         "Retired contractor with 30+ years of experience. Passionate about preserving Julia Morgan's architectural legacy.",
       emergencyContact: "Maria Torres (530) 555-0126",
       notes: "Skilled in woodwork restoration. Available weekdays.",
+      whatTheyWant: "Restoration tool upgrades and preservation tours.",
       status: "Active",
       isActive: true
     },
@@ -132,6 +136,7 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
         "Local artist and educator who teaches youth art classes at North Star House. Deeply connected to the creative community.",
       emergencyContact: "David Rodriguez (530) 555-0128",
       notes: "Great with children. Leads Saturday workshops.",
+      whatTheyWant: "Expanded studio space and more youth programs.",
       status: "Active",
       isActive: true
     }
@@ -630,6 +635,31 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                 ) : (
                   <p className="leading-relaxed" style={{ color: '#886c44' }}>
                     {selectedVolunteer.background}
+                  </p>
+                )}
+              </div>
+
+              {/* What They Want */}
+              <div className="pt-4" style={{ borderTop: '1px solid #e8e6e3' }}>
+                <h3 className="text-sm font-medium mb-2" style={{ color: '#886c44' }}>
+                  What They Want to See
+                </h3>
+                {isEditing ? (
+                  <textarea
+                    value={editedData.whatTheyWant}
+                    onChange={(e) => handleInputChange('whatTheyWant', e.target.value)}
+                    className="w-full text-sm leading-relaxed rounded-lg p-3 focus:outline-none focus:ring-2"
+                    style={{
+                      color: '#886c44',
+                      opacity: 0.9,
+                      border: '1px solid #e8e6e3',
+                      '--tw-ring-color': '#886c44'
+                    }}
+                    rows="2"
+                  />
+                ) : (
+                  <p className="text-sm leading-relaxed" style={{ color: '#886c44', opacity: 0.9 }}>
+                    {selectedVolunteer.whatTheyWant || '—'}
                   </p>
                 )}
               </div>

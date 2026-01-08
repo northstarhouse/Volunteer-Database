@@ -19,7 +19,8 @@ const COLUMN_KEYS = [
   'constantContactA',
   'constantContactB',
   'photo',
-  'background'
+  'background',
+  'whatTheyWant'
 ];
 
 function doGet() {

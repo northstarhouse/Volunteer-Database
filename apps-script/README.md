@@ -30,4 +30,5 @@ N: volunteer anniversary
 O: constant contact (A)  
 P: constant contact (B)  
 Q: picture url  
-R: background notes
+R: background notes  
+S: what they want to see at North Star House
