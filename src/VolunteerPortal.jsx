@@ -395,7 +395,6 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                   </h3>
                   <p className="text-sm" style={{ color: '#886c44', opacity: 0.7 }}>
                     {volunteer.area}
-                    {volunteer.role ? ` · ${volunteer.role}` : ''}
                   </p>
                   {volunteer.isActive === false ? (
                     <span
