@@ -81,6 +81,27 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
 
   const getVolunteerId = (volunteer) => volunteer._row || volunteer.id;
 
+  const formatBirthday = (value) => {
+    if (!value) {
+      return '';
+    }
+    if (value instanceof Date && !isNaN(value.getTime())) {
+      return value.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    }
+
+    const raw = String(value).trim();
+    if (!raw) {
+      return '';
+    }
+
+    const parsed = new Date(raw);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    }
+
+    return raw;
+  };
+
   // Sample data structure - in production, this would sync with Google Sheets
   const sampleVolunteers = [
     {
@@ -599,7 +620,11 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                 <InfoField
                   icon={<Calendar className="w-5 h-5" />}
                   label="Birthday"
-                  value={isEditing ? editedData.birthday : selectedVolunteer.birthday}
+                  value={
+                    isEditing
+                      ? editedData.birthday
+                      : formatBirthday(selectedVolunteer.birthday)
+                  }
                   isEditing={isEditing}
                   onChange={(val) => handleInputChange('birthday', val)}
                 />
