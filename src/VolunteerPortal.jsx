@@ -81,6 +81,28 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
 
   const getVolunteerId = (volunteer) => volunteer._row || volunteer.id;
 
+  const getPhotoSrc = (value) => {
+    if (!value) {
+      return '';
+    }
+    const raw = String(value).trim();
+    if (!raw) {
+      return '';
+    }
+
+    const fileMatch = raw.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+    if (fileMatch) {
+      return `https://drive.google.com/uc?export=view&id=${fileMatch[1]}`;
+    }
+
+    const openMatch = raw.match(/drive\.google\.com\/open\?id=([^&]+)/i);
+    if (openMatch) {
+      return `https://drive.google.com/uc?export=view&id=${openMatch[1]}`;
+    }
+
+    return raw;
+  };
+
   const formatBirthday = (value) => {
     if (!value) {
       return '';
@@ -409,9 +431,9 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                {volunteer.photo ? (
+                {getPhotoSrc(volunteer.photo) ? (
                   <img
-                    src={volunteer.photo}
+                    src={getPhotoSrc(volunteer.photo)}
                     alt={volunteer.name}
                     className="w-12 h-12 rounded-full object-cover"
                     style={{ border: '2px solid #886c44', opacity: 0.9 }}
@@ -466,9 +488,9 @@ const VolunteerPortal = ({ apiUrl = '' } = {}) => {
             <div className="p-8" style={{ backgroundColor: '#f5f3f0' }}>
               <div className="flex items-start gap-6">
                 <div>
-                {(isEditing ? editedData.photo : selectedVolunteer.photo) ? (
+                {getPhotoSrc(isEditing ? editedData.photo : selectedVolunteer.photo) ? (
                   <img
-                    src={isEditing ? editedData.photo : selectedVolunteer.photo}
+                    src={getPhotoSrc(isEditing ? editedData.photo : selectedVolunteer.photo)}
                     alt={isEditing ? editedData.name : selectedVolunteer.name}
                     className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-md"
                   />
